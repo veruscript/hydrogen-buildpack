@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+echo "--> Installing packages required for the PDF generator."
+apt-get install -y wkhtmltopdf
+apt-get install -y pdftk
+
+# These font packages may need to be installed if PDF generation does not work as expected.
+#
+# apt install xfonts-75dpi
+# xfonts-mathml -- https://ubuntu.pkgs.org/14.04/ubuntu-main-amd64/xfonts-mathml_6ubuntu1_all.deb.html
+#
+# This may replicate previous CentOS commands:
+#     yum install -y xorg-x11-fonts-75dpi
+#     yum install -y xorg-x11-fonts-Type1
+
+# Install Arial Unicode font used in PDF documents.
+echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
+apt-get -y install ubuntu-restricted-extras
+
+# Replacement for:
+#     apt-get -y --reinstall install ttf-mscorefonts-installer
+# to ensure the package is available for download.
+wget http://ftp.de.debian.org/debian/pool/contrib/m/msttcorefonts/ttf-mscorefonts-installer_3.6_all.deb -P /tmp
+apt-get purge ttf-mscorefonts-installer -y
+apt-get install /tmp/ttf-mscorefonts-installer_3.6_all.deb
+rm /tmp/ttf-mscorefonts-installer_3.6_all.deb
+
+chown root:staff /usr/local/share/fonts/arialunicodems -R
+chmod 644 /usr/local/share/fonts/arialunicodems/* -R
+chmod 755 /usr/local/share/fonts/arialunicodems
+
+fc-cache -fv
+
+# Install LaTeX packages for PDF generation via Pandoc.
+apt install -y texlive-full
+
+# Allow PDF generation to run without requiring a larger instance with larger memory.
+# To do this, we create a swapfile.
+dd if=/dev/zero of=/var/hydrogen.swap bs=1M count=2048
+chown root /var/hydrogen.swap
+chmod 600 /var/hydrogen.swap
+mkswap /var/hydrogen.swap
